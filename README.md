@@ -1,4 +1,4 @@
-# **WORM: A Privacy-Preserving, Cryptographically Scarce Token Backed by Ethereum Burn**
+# [DRAFT] **WORM: A Privacy-Preserving, Cryptographically Scarce Token Backed by Ethereum Burn**
 
 ---
 
@@ -26,13 +26,65 @@ Where Tornado offered unlinkability, WORM offers **invisibility**. Where others 
 
 ## **2. Architecture and Design**
 
-The WORM protocol consists of two main phases: ETH burn and WORM minting.
+The WORM protocol is built around a **two-token model** that decouples the private act of ETH burning from the public issuance of a scarce asset. These two tokens — **BETH** and **WORM** — serve distinct purposes within the system and interact through a carefully designed, time-based minting mechanism.
 
-To initiate the process, a user first selects a secret value known as the `burnKey`. From this secret and the intended `receiverAddress`, the user generates a one-way ETH burn address by hashing the two values together using the Poseidon2 hash function and taking the first 20 bytes. The user then sends ETH to this derived address. Because the address is deterministically derived but not associated with any known private key, the funds are provably unrecoverable.
+This separation of concerns allows the protocol to provide strong privacy guarantees, a predictable emission schedule, and a clean market for speculation and utility, all without centralized custody or bridges.
 
-Once the ETH is burned, the user generates a zk-SNARK proof, called a **BETH proof**, that attests to the existence of this burn event in Ethereum’s global state. This involves verifying that an account existed in a specific Ethereum block’s state root, and that this account had a given balance of ETH and was located at a burn address matching the Poseidon-derived formula. The proof also ensures that a one-time-use `nullifier` is disclosed, preventing the same burn from being claimed multiple times.
+---
 
-The user may choose to allocate the resulting value into three components: a **fee** to a relayer, a **spend** amount that is immediately minted to the receiver, and a **remaining coin** that can be redeemed later with a separate proof. All of this is committed to a single public hash that is passed to the verifier smart contract, ensuring the integrity and privacy of the minting event.
+### **2.1 BETH: The Proof-of-Burn Receipt**
+
+When a user burns ETH at a stealth address — derived from a secret `burnKey` and a chosen `receiverAddress` — they generate a **zk-SNARK proof** attesting that the ETH was irreversibly destroyed in a canonical Ethereum block. This proof is used to mint **BETH**, an ERC-20 token that serves as a **verifiable receipt of ETH burn**.
+
+Each unit of BETH represents 1 ETH provably destroyed. However, BETH itself is not tied to a specific burn address or transaction in any observable way. The proof that produces BETH is privacy-preserving — it reveals only a single commitment hash derived from six fields (including the state root, nullifier, encrypted coin, and receiver address), without exposing the burn transaction, block number, or sender wallet.
+
+Because BETH is transferable, users can **trade**, or **hold** their proof-of-burn rights. This opens up a rich design space:
+
+* Burners can sell BETH on secondary markets without needing to interact with the WORM protocol.
+* Market participants can acquire BETH and redeem it for WORM in future epochs.
+
+This liquidity layer ensures that the protocol doesn’t force users to claim WORM directly after burning ETH. Instead, BETH becomes a **fungible claim token**, backed by irreversible ETH destruction and redeemable for WORM according to global supply rules.
+
+---
+
+### **2.2 WORM: A Cryptographically Scarce Token**
+
+While BETH tracks ETH burned, **WORM tracks ETH scarcity**. WORM is an ERC-20 token minted through the consumption of BETH but governed by **strict issuance constraints** to preserve its value and deflationary properties.
+
+WORM cannot be freely minted from BETH on a 1:1 basis. Instead, the protocol mints WORM on a fixed schedule: **50 WORM per epoch**, where each epoch spans **30 minutes**. Within each epoch, any BETH holder may submit a redemption proof to burn their BETH and claim a proportional share of the epoch’s WORM issuance.
+
+This model creates a competitive redemption system:
+
+* If few users redeem BETH in a given epoch, each receives a larger portion of the 50 WORM.
+* If many users redeem BETH in the same epoch, each receives less.
+
+The amount of WORM a user receives in an epoch is determined by their BETH share:
+
+```
+WORM received = (user’s BETH) / (total BETH redeemed in epoch) × 50
+```
+
+This structure creates a **dynamic incentive landscape**. Users must weigh their BETH redemption timing carefully — redeem early to avoid dilution, or wait for favorable conditions at the risk of increased competition.
+
+Because only 50 WORM can be minted every 30 minutes (or 2,400 per day), the protocol introduces **artificial scarcity** overlaid on top of ETH burn scarcity. This gives WORM similar properties to Bitcoin or Ethereum post-merge: issuance is slow, predictable, and increasingly valuable as demand grows.
+
+---
+
+### **2.3 Privacy Preservation**
+
+Despite being minted on-chain, **WORM preserves user privacy** by decoupling burn and mint events entirely.
+
+Burning ETH happens through a stealth address derived from the Poseidon2 hash of a secret `burnKey` and receiver address. This burn address is indistinguishable from any normal Ethereum account and has no public link to the user. When the burn is proven via zk-SNARK, no information about the transaction, wallet, or block number is disclosed — only a cryptographic commitment.
+
+This architecture ensures that:
+
+* No one can link a WORM minter to an ETH burn.
+* No one can determine how much ETH any WORM holder has destroyed.
+* Users can mint or acquire WORM without ever interacting with a known privacy protocol.
+
+The use of **BETH as a privacy-preserving receipt token** further reinforces this model. Since BETH is transferable, the entity that burns ETH need not be the one that mints WORM. This indirection — combined with the circuit’s use of nullifiers and encrypted balances — provides **plausible deniability** at every layer.
+
+In practice, this means that **WORM acts as a bridge** from public ETH into a **private token** — not just in terms of unlinkability, but in terms of **optical invisibility**. No one can even prove that a wallet is a WORM participant unless that wallet publicly claims so.
 
 ---
 
@@ -79,19 +131,6 @@ This makes WORM not only scarce due to ETH backing, but **scarce by construction
 WORM is implemented using Circom circuits that verify Ethereum state root membership, Keccak and Poseidon hash functions, and Merkle Patricia Trie traversal. The BETH proof is generated off-chain using the burnKey, balance, and the relevant Ethereum block data. The WORM verifier smart contract receives the proof and commitment hash, and mints the specified amount of WORM.
 
 The protocol adheres to [EIP-7503](https://eips.ethereum.org/EIPS/eip-7503), a proposed standard for Private Proof-of-Burn, which ensures composability with wallets and other ZK systems.
-
----
-
-## **7. Future Directions**
-
-The WORM protocol may be extended in the future to support:
-
-* Burn receipts from ERC-20 or ERC-721 assets.
-* Multi-chain or Layer 2 issuance using cross-chain BETH proofs.
-* Non-transferable “burn credentials” for proof of ETH sacrifice.
-* Private donation, voting, or governance mechanisms tied to burns.
-
-These extensions can expand WORM into a broader ecosystem for **cryptographically proven economic action**, where irreversible loss becomes the basis for novel value.
 
 ---
 
