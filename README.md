@@ -12,11 +12,15 @@ This mechanism introduces a new kind of cryptoasset: one that is scarce by const
 
 ## **1. Introduction**
 
-Ethereum has long lacked a trustless, native asset that combines **scarcity**, **privacy**, and **usability**. While stablecoins like USDC offer composability, they rely on centralized issuers. Privacy tools like Tornado Cash and Railgun offer some on-chain anonymity but struggle with off-chain traceability and regulatory scrutiny. Meanwhile, burning ETH — the act of sending it to a provably unrecoverable address — is an irreversible act of economic sacrifice, yet one that provides no individual utility or tokenized claim.
+Tornado Cash demonstrated that cryptographic privacy alone is not enough. Despite using zero-knowledge proofs to unlink deposits and withdrawals, Tornado users were not immune to surveillance or enforcement, because their interactions with the protocol were publicly visible. The act of using Tornado was itself a signal — one that regulators and analytics firms could track, flag, and act upon. Privacy without **plausible deniability** is often just a red flag with better math.
 
-WORM addresses this gap. It turns ETH burns into usable, private economic value through cryptographic evidence. At its core is a zero-knowledge circuit that allows users to prove, without revealing any sensitive information, that a certain amount of ETH was destroyed in a canonical Ethereum block. These proofs are used to mint WORM tokens on Ethereum, in a process that is both verifiable and anonymous.
+WORM rethinks on-chain privacy from first principles. Rather than shielding transactions within a public system, it enables users to **privately exit Ethereum’s public accounting altogether**. By destroying ETH at a secret burn address and proving it in zero-knowledge, users mint WORM — a cryptographically scarce ERC-20 token backed by irreversible ETH loss, but issued anonymously.
 
-Because WORM is minted from nothing but irreversible ETH loss, it inherits ETH’s credibility, scarcity, and settlement assurances, while introducing strong privacy properties unavailable in most on-chain assets.
+WORM introduces **Private Proof-of-Burn**, a mechanism that proves ETH was burned in a canonical Ethereum block without revealing the burn address or transaction. No deposit contract is ever touched. The result is a shielded minting process, fully native to Ethereum, with no bridges, no custodians, and no identifiable footprint.
+
+This architecture makes WORM more than just a new token — it serves as a **bridge from transparent Ethereum balances into a private asset class**. Users can move funds from their public ETH address into WORM and then into shielded systems like Railgun, Noir, or custom mixers, without revealing their source of funds or burning history.
+
+Where Tornado offered unlinkability, WORM offers **invisibility**. Where others mask behavior, WORM erases it.
 
 ---
 
