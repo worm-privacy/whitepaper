@@ -88,6 +88,55 @@ The use of **BETH as a privacy-preserving receipt token** further reinforces thi
 
 In practice, this means that **WORM acts as a bridge** from public ETH into a **private token** — not just in terms of unlinkability, but in terms of **optical invisibility**. No one can even prove that a wallet is a WORM participant unless that wallet publicly claims so.
 
+### **2.4 Circom Circuits: Verifying the Proof-of-Burn**
+
+At the heart of the WORM protocol is a zero-knowledge circuit written in Circom, which implements the **Private Proof-of-Burn** standard defined in [EIP-7503](https://eips.ethereum.org/EIPS/eip-7503). This circuit enables users to prove — without revealing any on-chain identifiers — that a given amount of ETH was irreversibly destroyed in a valid Ethereum block.
+
+#### **Burn Address Derivation and Constraints**
+
+The process begins with the user generating a secret `burnKey`, which serves as the private anchor for the burn. A corresponding Ethereum address, known as the **burn address**, is deterministically derived using the following steps:
+
+1. **Poseidon2 Hashing**:  
+   The user computes `Poseidon2(burnKey, receiverAddress)` where both inputs are 254-bit field elements.  
+2. **Truncation to Ethereum Address**:  
+   The first 160 bits of the result are used to form a standard Ethereum address.
+
+Due to the truncation step, this mapping compresses a 508-bit input space into a 160-bit address space, implying potential collisions. To reinforce security, a **proof-of-work constraint** is introduced:
+
+```
+
+Keccak256(burnKey || receiverAddress || "EIP-7503") < 2^(232)
+
+```
+
+This condition requires that the hash output begins with three zero bytes (24 bits of difficulty), raising the effective search space from 2¹⁶⁰ to approximately 2¹⁸⁴, providing robust preimage resistance.
+
+#### **Merkle Patricia Trie Proof**
+
+Once ETH is sent to the derived burn address, the balance update is reflected in the Ethereum state tree. The circuit verifies this using a Merkle Patricia Trie (MPT) inclusion proof, confirming that:
+
+- The derived burn address exists as a leaf in the global state trie.
+- The account RLP at that leaf contains a nonzero ETH balance (indicating a completed burn).
+- The trie root computed from the proof matches the canonical `stateRoot` of the Ethereum block in question.
+
+This traversal is done by checking that the Keccak hash of each node correctly links to the next, ending in the expected `stateRoot`. The circuit essentially re-derives the Ethereum MPT path and asserts its correctness via cryptographic hashes.
+
+#### **Public Inputs and Circuit Outputs**
+
+The circuit exposes the following public inputs:
+
+- `stateRoot`: The Ethereum block’s global state root.
+- `balance`: The ETH balance held at the burn address (must be > 0).
+- `nullifier`: A one-time-use commitment derived as `Poseidon2(burnKey, 1)` to prevent reuse.
+- `coin`: An encrypted value `Poseidon2(burnKey, amount)` representing the burned amount for selective disclosure or partial spending.
+- `commitment`: A combined hash representing the burn event and receiver address, used to authorize minting BETH or WORM.
+
+These outputs are submitted as part of the zk-SNARK proof, allowing the WORM verifier contract to validate the ETH burn privately and securely, without ever revealing the underlying burn transaction or wallet address.
+
+---
+
+Together, this circuit forms the cryptographic foundation for WORM’s privacy-preserving, irreversible minting mechanism. It ensures that only genuine ETH burns — proven via Ethereum state — can result in the issuance of BETH and subsequently WORM, while preserving anonymity and preventing fraud or reuse.
+
 ---
 
 ## **3. Privacy and Plausible Deniability**
