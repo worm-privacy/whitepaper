@@ -1,6 +1,6 @@
 # [DRAFT] 🪱 **WORM: A Privacy-Preserving, Cryptographically Scarce Token Backed by Ethereum Burn** 🔥
 
-@keyvank <keyvankambakhsh@gmail.com> | @lovely-necromancer <sh.ebrahimi92@gmail.com> | https://worm.cx
+[@keyvank](https://github.com/keyvank) &lt;keyvankambakhsh@gmail.com&gt; | [@lovely-necromancer](https://github.com/lovely-necromancer) &lt;sh.ebrahimi92@gmail.com&gt; | https://worm.cx
 
 ---
 
